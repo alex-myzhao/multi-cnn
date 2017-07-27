@@ -2,6 +2,8 @@
   <dictionary name="zhaomingyu">
     <words>
       <w>alexchao</w>
+      <w>cifar</w>
+      <w>mnist</w>
       <w>smores</w>
       <w>unpacker</w>
     </words>

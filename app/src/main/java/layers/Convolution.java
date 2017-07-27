@@ -194,6 +194,7 @@ public class Convolution implements LayerInterface {
         Inputs:
         kernel[0] is a filter blob.
         kernel[1] is bias blob.
+        group
         */
 
         // calculate sizes
@@ -223,7 +224,7 @@ public class Convolution implements LayerInterface {
             for (int k = 0; k < (n_k / group); k++)// for k in kernels
                 for (int g = 0; g < (group); g++) {
                     float[][][] convInFrame = new float[(c_i / group)][h_i][w_i];
-                    float[][][] convInKernel = new float[(c_i / group)][h_i][w_i];
+                    float[][][] convInKernel;
 
                     int temp = g * c_i / group;
                     for (int i = g * c_i / group; i < (g + 1) * c_i / group; i++) // copy part of inputBlob
