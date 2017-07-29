@@ -27,7 +27,7 @@ public class CNNdroid {
     private boolean parallel;                   // implementation method (parallel or sequential)
     private boolean autoTuning;                 // auto-tuning (on or off)
     private long allocatedRAM = -1;             // size of RAM allocated to the parameters
-    private boolean[] loadtAtStart;             // whether or not the parameters should be loaded at start-up
+    private boolean[] loadAtStart;             // whether or not the parameters should be loaded at start-up
     private int layerCounter = 0;               // counter for the layers which have parameters
     private String rootDir;                     // the root directory of network parameters file
     private String netStructureFile;            // the directory of the network definition file
@@ -121,13 +121,13 @@ public class CNNdroid {
         long[] params = longArray(paramSize);
         int[] index = mergeSort(params, 0, params.length - 1);
 
-        loadtAtStart = new boolean[params.length];
+        loadAtStart = new boolean[params.length];
 
         long sum = allocatedRAM;
         for (int i = 0; i < params.length; ++i) {
             if (sum - params[index[i]] >= 0) {
                 sum -= params[index[i]];
-                loadtAtStart[index[i]] = true;
+                loadAtStart[index[i]] = true;
             }
         }
     }
@@ -346,7 +346,7 @@ public class CNNdroid {
             if (parametersFile == null )
                 return false;
             Convolution c = new Convolution(new int[]{stride, stride}, new int[]{pad, pad}, group,
-                    rootDir + parametersFile, parallel, loadtAtStart[layerCounter], autoTuning, myRS, name, rootDir + tuningFolder);
+                    rootDir + parametersFile, parallel, loadAtStart[layerCounter], autoTuning, myRS, name, rootDir + tuningFolder);
             ++layerCounter;
             lastLayer = c;
             layers.add(c);
@@ -418,7 +418,7 @@ public class CNNdroid {
             }
             if (parametersFile == null)
                 return false;
-            FullyConnected fc = new FullyConnected(rootDir + parametersFile, parallel, loadtAtStart[layerCounter], autoTuning, myRS, name, rootDir + tuningFolder);
+            FullyConnected fc = new FullyConnected(rootDir + parametersFile, parallel, loadAtStart[layerCounter], autoTuning, myRS, name, rootDir + tuningFolder);
             ++layerCounter;
             lastLayer = fc;
             layers.add(fc);

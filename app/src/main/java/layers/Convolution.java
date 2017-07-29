@@ -53,7 +53,9 @@ public class Convolution implements LayerInterface {
         None
     }
 
-    public Convolution(int[] stride, int[] pad, int group, String paramFilePath, boolean parallel, boolean loadParamsAtStart, boolean tuneFunc, RenderScript myRS, String name, String tuningFolder) {
+    public Convolution(int[] stride, int[] pad, int group, String paramFilePath, boolean parallel,
+                       boolean loadParamsAtStart, boolean tuneFunc, RenderScript myRS,
+                       String name, String tuningFolder) {
         this.paramFilePath = paramFilePath;
         this.stride = stride;
         this.pad = pad;
@@ -146,7 +148,7 @@ public class Convolution implements LayerInterface {
             float[][][][] localWeight = (float[][][][]) objects[0];
             float[] localBias = (float[]) objects[1];
 
-            if (parallel){
+            if (parallel) {
                 switch (algorithm) {
                     case "F4F1":
                         initKernelF4F1(localWeight, localBias);
@@ -181,7 +183,7 @@ public class Convolution implements LayerInterface {
         }
         else
         {
-            return invokeFunctions(input,weight, bias, false);
+            return invokeFunctions(input, weight, bias, false);
         }
     }
 
@@ -2158,13 +2160,12 @@ public class Convolution implements LayerInterface {
         Object output = null;
         long runTime = System.currentTimeMillis();
 
-        if (!parallel)
+        if (!parallel) {
             output = convLayerRolledSeq((float[][][][]) input, myWeight, myBias, pad, stride, group);
-        else {
+        } else {
             if (tuneNow) {
                 output = tuneFunction((float[][][][]) input);
-            }
-            else {
+            } else {
                 switch (algorithm) {
                     case "F4F1":
                         output = convLayerRolledParInF4OutF1((float[][][][]) input, myWeight, destroy);
