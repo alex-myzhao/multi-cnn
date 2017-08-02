@@ -34,11 +34,19 @@ public class CNNdroid {
     private RenderScript myRS;                  // RenderScript object
     private LayerInterface lastLayer = null;    // the last constructed layer
     private boolean[] necessaryDefinition;      // execution_mode, auto_tuning
+    private int inputH;
+    private int inputW;
+    private int thisLayerOutputH;
+    private int thisLayerOutputW;
+    private int longerSide;
+    private int shorterSide;
+    private int[] thisNodeInputSize;
+    private int lSideIndex;
 
     public CNNdroid(RenderScript myRS, String netStructureFile) throws Exception {
         this.myRS = myRS;
         this.netStructureFile = netStructureFile;
-
+        this.lSideIndex=0;
         necessaryDefinition = new boolean[2];
 
         layers = new ArrayList<>();
@@ -47,16 +55,29 @@ public class CNNdroid {
         File f = new File(rootDir + tuningFolder);
         if (!f.exists())
             f.mkdir();
+        Log.d("+++++++++root", rootDir);
     }
 
     // support for 3d input
     public Object compute(Object input) {
         Object output;
-        if (input.getClass().toString().equals("class [[[[F"))
+        if (input.getClass().toString().equals("class [[[[F")) {
+            inputH = ((float[][][][]) input)[0][0].length;
+            inputW = ((float[][][][]) input)[0][0][0].length;
+            setLongerSide(inputH, inputW);
+            if(inputH<inputW){
+                lSideIndex=1;
+            }
             output = input;
-        else if (input.getClass().toString().equals("class [[[F")) {
+        } else if (input.getClass().toString().equals("class [[[F")) {
             float[][][][] newInput = new float[1][][][];
             newInput[0] = (float[][][]) input;
+            inputH = newInput[0][0].length;
+            inputW = newInput[0][0][0].length;
+            if(inputH<inputW){
+                lSideIndex=1;
+            }
+            setLongerSide(inputH, inputW);
             output = newInput;
         } else {
             Log.d("CNNdroid", "Error: input type is not supported");
@@ -64,8 +85,42 @@ public class CNNdroid {
         }
 
 
-        for (int i = 0 ; i < layers.size() ; i++) {
-            Object temp = output;
+        for (int i = 0; i < layers.size(); i++) {
+            //Object temp = output;
+
+            if (layers.get(i) instanceof Convolution) {
+                int[] thisLayerKernelSize = {((Convolution) layers.get(i)).getKernelWidthAndHeight()[0],((Convolution) layers.get(i)).getKernelWidthAndHeight()[1]};
+                int[] thisLayerPadSize = {((Convolution) layers.get(i)).getPad()[0],((Convolution) layers.get(i)).getPad()[1]};
+                int[] thisLayerStrideSize= {((Convolution) layers.get(i)).getStride()[0],((Convolution) layers.get(i)).getStride()[1]};
+                thisLayerOutputH = (inputH + 2 * thisLayerPadSize[0] - thisLayerKernelSize[0]) / thisLayerStrideSize[0] + 1;
+                thisLayerOutputW = (inputW + 2 * thisLayerPadSize[1] - thisLayerKernelSize[1]) / thisLayerStrideSize[1] + 1;
+                inputH = thisLayerOutputH;
+                inputW = thisLayerOutputW;
+                setLongerSide(inputH, inputW);//longer side index
+                //index bound:[thisLayerInputFirstIndex,thisLayerInputSecondIndex],minimum thisLayerInputFirstIndex is 1 insteadof 0
+                int thisNodeInputFirstIndex = (int) Math.floor(longerSide*(i-1) / 4)+1;//for node1
+                int initI = (int) Math.floor(longerSide*i / 4);
+                int thisLayerInputSecondIndex = thisLayerStrideSize[lSideIndex] * (initI - thisNodeInputFirstIndex - 1) +
+                        thisLayerKernelSize[lSideIndex] - 2 * thisLayerPadSize[lSideIndex] + thisNodeInputFirstIndex;
+
+                //if i=0:GO distributes cropped image data among nodes
+                if(i==0)
+                {
+                    output=getOriginImDtaFromGo();
+                    thisNodeInputSize[0]=thisNodeInputFirstIndex;
+                    thisNodeInputSize[1]=initI;
+                }
+                if(i>0){
+                    //if thisNodeInputSize[1]<thisLayerInputSecondIndex,getDtaFromNode2
+                    if(thisNodeInputSize[1]<thisLayerInputSecondIndex){
+                        Object receivedDta=askDtaFromNode2(thisNodeInputSize,thisLayerInputSecondIndex);//I have vs I need
+                        output=concatDta(output,receivedDta);
+                    }
+                    thisNodeInputSize[0]=thisNodeInputFirstIndex;
+                    thisNodeInputSize[1]=initI;
+                }
+
+            }
             output = layers.get(i).compute(output);
         }
 
@@ -87,16 +142,14 @@ public class CNNdroid {
             if (strLow.startsWith("root_directory")) {
                 str = str.substring(14);
                 root = deriveStr(str);
-            }
-            else if (strLow.startsWith("allocated_ram")) {
+            } else if (strLow.startsWith("allocated_ram")) {
                 str = str.substring(13);
                 long l = Long.parseLong(deriveNum(str));
                 if (l < MAX_PARAM_SIZE)
                     allocatedRAM = l * 1024 * 1024;
                 else
                     allocatedRAM = MAX_PARAM_SIZE;
-            }
-            else if (strLow.startsWith("parameters_file")) {
+            } else if (strLow.startsWith("parameters_file")) {
                 str = str.substring(15);
                 String fName = deriveStr(str);
                 File pf = new File(root + fName);
@@ -151,16 +204,14 @@ public class CNNdroid {
                     throw new Exception("CNNdroid root directory is not specified correctly.");
                 }
                 rootDir = str;
-            }
-            else if (strLow.startsWith("allocated_ram")) {
+            } else if (strLow.startsWith("allocated_ram")) {
                 str = str.substring(13);
                 str = deriveNum(str);
                 if (str.equals("")) {
                     Log.d("CNNdroid", "Error: allocated_ram is not specified correctly in the network structure definition file");
                     throw new Exception("CNNdroid allocated RAM is not specified correctly.");
                 }
-            }
-            else if (strLow.startsWith("execution_mode")) {
+            } else if (strLow.startsWith("execution_mode")) {
                 strLow = strLow.substring(14);
                 strLow = deriveStr(strLow);
                 if (strLow.equals("parallel"))
@@ -172,8 +223,7 @@ public class CNNdroid {
                     throw new Exception("CNNdroid execution mode is not specified correctly.");
                 }
                 necessaryDefinition[0] = true;
-            }
-            else if (strLow.startsWith("auto_tuning")) {
+            } else if (strLow.startsWith("auto_tuning")) {
                 strLow = strLow.substring(11);
                 strLow = deriveStr(strLow);
                 if (strLow.equals("on"))
@@ -185,8 +235,7 @@ public class CNNdroid {
                     throw new Exception("CNNdroid auto-tuning is not specified correctly.");
                 }
                 necessaryDefinition[1] = true;
-            }
-            else if (strLow.startsWith("layer")) {
+            } else if (strLow.startsWith("layer")) {
                 ++layerNum;
                 str = str.substring(5);
                 String tempStr;
@@ -201,11 +250,9 @@ public class CNNdroid {
                     Log.d("CNNdroid", "Error: Layer number " + layerNum + " is not defined correctly in the network structure definition file");
                     throw new Exception("CNNdroid layer number " + layerNum + " is not defined correctly.");
                 }
-            }
-            else if (strLow.equals(""))
+            } else if (strLow.equals(""))
                 continue;
-            else
-            {
+            else {
                 Log.d("CNNdroid", "Error in the network structure definition file: " + str);
                 throw new Exception("Error in CNNdroid network structure definition file: " + str);
             }
@@ -239,8 +286,7 @@ public class CNNdroid {
 
         String retStr = str.substring(0, i);
 
-        if (i != str.length() - 1)
-        {
+        if (i != str.length() - 1) {
             str = str.substring(i);
             str = str.trim();
             if (!str.equals(""))
@@ -293,10 +339,9 @@ public class CNNdroid {
         String type = "";
         String name = "";
         List<String> args = new ArrayList<String>();
-        List<String> values= new ArrayList<String>();
+        List<String> values = new ArrayList<String>();
 
-        for (int i = 0; i < strArr.length - 1; ++i)
-        {
+        for (int i = 0; i < strArr.length - 1; ++i) {
             strArr[i] = strArr[i].trim();
             if (strArr[i].equals(""))
                 continue;
@@ -316,15 +361,13 @@ public class CNNdroid {
                 name = tempValue;
             else if (tempArg.equalsIgnoreCase("type"))
                 type = tempValue;
-            else
-            {
+            else {
                 args.add(tempArg);
                 values.add(tempValue);
             }
         }
 
-        if (type.equalsIgnoreCase("Convolution"))
-        {
+        if (type.equalsIgnoreCase("Convolution")) {
             String parametersFile = null;
             int pad = 0;
             int stride = 1;
@@ -343,7 +386,7 @@ public class CNNdroid {
                 else
                     return false;
             }
-            if (parametersFile == null )
+            if (parametersFile == null)
                 return false;
             Convolution c = new Convolution(new int[]{stride, stride}, new int[]{pad, pad}, group,
                     rootDir + parametersFile, parallel, loadtAtStart[layerCounter], autoTuning, myRS, name, rootDir + tuningFolder);
@@ -351,8 +394,7 @@ public class CNNdroid {
             lastLayer = c;
             layers.add(c);
             return true;
-        }
-        else if (type.equalsIgnoreCase("Pooling")) {
+        } else if (type.equalsIgnoreCase("Pooling")) {
             String pool = null;
             int kernelSize = -1;
             int pad = 0;
@@ -378,8 +420,7 @@ public class CNNdroid {
             lastLayer = p;
             layers.add(p);
             return true;
-        }
-        else if (type.equalsIgnoreCase("LRN")) {
+        } else if (type.equalsIgnoreCase("LRN")) {
             String normRegion = null;
             int localSize = -1;
             double alpha = -1.0;
@@ -400,13 +441,12 @@ public class CNNdroid {
             }
             if (normRegion == null || localSize == -1 || alpha == -1.0 || beta == -1.0)
                 return false;
-            LocalResponseNormalization lrn =  new LocalResponseNormalization(localSize, alpha, beta,
+            LocalResponseNormalization lrn = new LocalResponseNormalization(localSize, alpha, beta,
                     normRegion, parallel, autoTuning, name, rootDir + tuningFolder);
             lastLayer = lrn;
             layers.add(lrn);
             return true;
-        }
-        else if (type.equalsIgnoreCase("FullyConnected")) {
+        } else if (type.equalsIgnoreCase("FullyConnected")) {
             String parametersFile = null;
             for (int i = 0; i < args.size(); ++i) {
                 String tempArg = args.get(i);
@@ -423,8 +463,7 @@ public class CNNdroid {
             lastLayer = fc;
             layers.add(fc);
             return true;
-        }
-        else if (type.equalsIgnoreCase("Accuracy")) {
+        } else if (type.equalsIgnoreCase("Accuracy")) {
             String parametersFile = null;
             int topk = -1;
             for (int i = 0; i < args.size(); ++i) {
@@ -443,22 +482,19 @@ public class CNNdroid {
             lastLayer = a;
             layers.add(a);
             return true;
-        }
-        else if (type.equalsIgnoreCase("Softmax")) {
+        } else if (type.equalsIgnoreCase("Softmax")) {
             if (args.size() != 0)
                 return false;
             Softmax sm = new Softmax(name);
             lastLayer = sm;
             layers.add(sm);
             return true;
-        }
-        else if (type.equalsIgnoreCase("ReLU")) {
+        } else if (type.equalsIgnoreCase("ReLU")) {
             if (parallel) {
                 if (lastLayer instanceof Convolution) {
                     ((Convolution) lastLayer).setNonLinearType(Convolution.NonLinearType.RectifiedLinearUnit);
                     return true;
-                }
-                else if (lastLayer instanceof FullyConnected) {
+                } else if (lastLayer instanceof FullyConnected) {
                     ((FullyConnected) lastLayer).setNonLinearType(FullyConnected.NonLinearType.RectifiedLinearUnit);
                     return true;
                 }
@@ -467,13 +503,11 @@ public class CNNdroid {
             lastLayer = nl;
             layers.add(nl);
             return true;
-        }
-        else
+        } else
             return false;
     }
 
-    long[] longArray(List<Long> ll)
-    {
+    long[] longArray(List<Long> ll) {
         long[] l = new long[ll.size()];
         Iterator<Long> i = ll.iterator();
 
@@ -487,8 +521,7 @@ public class CNNdroid {
     }
 
     // decrementing order
-    private int[] mergeSort(long[] a, int s, int e)
-    {
+    private int[] mergeSort(long[] a, int s, int e) {
         if (s > e)
             return null;
 
@@ -502,23 +535,18 @@ public class CNNdroid {
         return merge(a, index1, index2);
     }
 
-    private int[] merge(long a[], int[] index1, int[] index2)
-    {
+    private int[] merge(long a[], int[] index1, int[] index2) {
         int l1 = index1.length;
         int l2 = index2.length;
 
         int[] index = new int[l1 + l2];
         int i = 0, j = 0, k = 0;
 
-        while (k < l1 + l2)
-        {
-            if ((i < l1) && ((j >= l2) || (a[index1[i]] > a[index2[j]])))
-            {
+        while (k < l1 + l2) {
+            if ((i < l1) && ((j >= l2) || (a[index1[i]] > a[index2[j]]))) {
                 index[k] = index1[i];
                 ++i;
-            }
-            else
-            {
+            } else {
                 index[k] = index2[j];
                 ++j;
             }
@@ -528,5 +556,58 @@ public class CNNdroid {
         return index;
     }
 
+    private void setLongerSide(int inputH, int inputW) {
+        if (inputH >= inputW) {
+            longerSide = inputH;
+            shorterSide = inputW;
+
+        } else {
+            longerSide = inputW;
+            shorterSide = inputH;
+
+        }
+    }
+    private Object getOriginImDtaFromGo(){
+        return null;
+    }
+    private Object askDtaFromNode2(int[] thisNodeInputSize,int thisNodeSecondIndex){
+        return null;
+    }
+    private Object concatDta(Object myDta,Object receivedDta){
+        float[][][][] newDtaArr;
+        int batchNum=((float[][][][])myDta).length;
+        int channelNum=((float[][][][])myDta)[0].length;
+        int[] myDtaWh={((float[][][][])myDta)[0][0].length,((float[][][][])myDta)[0][0][0].length};
+        int[] receivedDtaWh={((float[][][][])receivedDta)[0][0].length,((float[][][][])receivedDta)[0][0][0].length};
+        if(lSideIndex==0)
+        {
+            newDtaArr=new float[batchNum][channelNum][myDtaWh[0]+receivedDtaWh[0]][myDtaWh[1]];
+            for(int i=0;i<batchNum;i++)
+                for(int j=0;j<channelNum;j++)
+                    for(int k=0;k<myDtaWh[0];k++)
+                        for(int l=0;l<myDtaWh[1];l++)
+                            newDtaArr[i][j][k][l]=((float[][][][])myDta)[i][j][k][l];
+            for(int i=0;i<batchNum;i++)
+                for(int j=0;j<channelNum;j++)
+                    for(int k=0;k<receivedDtaWh[0];k++)
+                        for(int l=0;l<receivedDtaWh[1];l++)
+                            newDtaArr[i][j][k+myDtaWh[0]][l]=((float[][][][])myDta)[i][j][k][l];
+        }
+        else
+        {
+            newDtaArr=new float[batchNum][channelNum][myDtaWh[0]][myDtaWh[1]+receivedDtaWh[1]];
+            for(int i=0;i<batchNum;i++)
+                for(int j=0;j<channelNum;j++)
+                    for(int k=0;k<myDtaWh[0];k++)
+                        for(int l=0;l<myDtaWh[1];l++)
+                            newDtaArr[i][j][k][l]=((float[][][][])myDta)[i][j][k][l];
+            for(int i=0;i<batchNum;i++)
+                for(int j=0;j<channelNum;j++)
+                    for(int k=0;k<receivedDtaWh[0];k++)
+                        for(int l=0;l<receivedDtaWh[1];l++)
+                            newDtaArr[i][j][k][l+myDtaWh[1]]=((float[][][][])myDta)[i][j][k][l];
+        }
+        return newDtaArr;
+    }
 }
 
