@@ -6,4 +6,5 @@ public class StaticConfig {
     public static final String bufferPath = "/storage/emulated/0/tmpImages/";
 
     public static final int serverPort = 8080;
+    public static final String serverIP = "192.168.1.53";
 }

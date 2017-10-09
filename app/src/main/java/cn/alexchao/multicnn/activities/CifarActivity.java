@@ -13,15 +13,18 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.renderscript.RenderScript;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Scanner;
@@ -29,6 +32,7 @@ import java.util.Scanner;
 import cn.alexchao.multicnn.StaticConfig;
 import cn.alexchao.multicnn.Util;
 import cn.alexchao.multicnn.R;
+import cn.alexchao.multicnn.threads.ClientThread;
 import messagepack.ParamUnpacker;
 import network.CNNdroid;
 
@@ -51,6 +55,9 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
     private final String mModelPath = StaticConfig.modelPath;
     private final String mBufferPath = StaticConfig.bufferPath;
 
+    // socket connection
+    private ClientThread mClient;
+
     private File imageFile;
 
     @Override
@@ -58,6 +65,7 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cifar);
 
+        startClient();
         initialize();
 
         new CifarActivity.prepareModel().execute(mRenderScript);
@@ -79,11 +87,19 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
     // onClickListener
     @Override
     public void onClick(View v) {
-        if (v.getId() == R.id.btn) {
+        if (v.getId() == R.id.run_btn) {
             if (initFile()) {
-                takePhoto();
+//                takePhoto();
+                // use a chosen photo for
+                File tmpFile = new File(mBufferPath + "1507518149234.png");
+                performInference(Uri.fromFile(tmpFile));
             } else {
                 Toast.makeText(this, "Initialization Failed", Toast.LENGTH_SHORT).show();
+            }
+        } else if (v.getId() == R.id.send_msg_btn) {
+            Toast.makeText(this, "Send Msg", Toast.LENGTH_SHORT).show();
+            if (mClient != null) {
+                mClient.sendMsg("Client: Hi, Server");
             }
         }
     }
@@ -91,7 +107,7 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
     //  -- async task: read the model from files --
     private class prepareModel extends AsyncTask<RenderScript, Void, CNNdroid> {
         ProgressDialog progDialog;
-        RelativeLayout layout = (RelativeLayout) findViewById(R.id.layout) ;
+        LinearLayout layout = (LinearLayout) findViewById(R.id.layout) ;
 
         protected void onPreExecute () {
             mText.setText("Loading Model Network Parameters...");
@@ -139,13 +155,19 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
     private void initialize() {
         askForPermission();
 
-        this.mBtn = (Button) findViewById(R.id.btn);
+        this.mBtn = (Button) findViewById(R.id.run_btn);
         this.mText = (TextView) findViewById(R.id.textView);
         mBtn.setOnClickListener(this);
+        findViewById(R.id.send_msg_btn).setOnClickListener(this);
 
         mRenderScript = RenderScript.create(this);
 
         readLabels();
+    }
+
+    // start socket connect
+    private void startClient() {
+        mClient = new ClientThread(this, StaticConfig.serverIP);
     }
 
     private String accuracy(float[] input_matrix, String[] labels, int topk) {

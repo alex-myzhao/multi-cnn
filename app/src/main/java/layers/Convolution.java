@@ -46,7 +46,6 @@ public class Convolution implements LayerInterface {
     private ScriptC_convRolledInF8OutF4 myScript84;
     private ScriptC_convRolledInF8OutF8 myScript88;
 
-
     // types of non-linear layer that may be appended to this layer
     public enum NonLinearType {
         RectifiedLinearUnit,
