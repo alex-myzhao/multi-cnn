@@ -1,4 +1,4 @@
-package cn.alexchao.multicnn;
+package cn.alexchao.multicnn.activities;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -26,6 +26,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Scanner;
 
+import cn.alexchao.multicnn.StaticConfig;
+import cn.alexchao.multicnn.Util;
+import cn.alexchao.multicnn.R;
 import messagepack.ParamUnpacker;
 import network.CNNdroid;
 
@@ -45,8 +48,8 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
 
     // global settings
     private final int mTextSize = 20;
-    private final String mModelPath = "/storage/emulated/0/multicnn/netfiles/cifar/";
-    private final String mBufferPath = "/storage/emulated/0/tmpImages/";
+    private final String mModelPath = StaticConfig.modelPath;
+    private final String mBufferPath = StaticConfig.bufferPath;
 
     private File imageFile;
 
@@ -63,12 +66,10 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == Config.REQUEST_TAKE_PHOTO_CODE && resultCode == Activity.RESULT_OK
+        if (requestCode == Util.REQUEST_TAKE_PHOTO_CODE && resultCode == Activity.RESULT_OK
                 && data != null) {
             performCrop(Uri.fromFile(imageFile));
-//            Toast.makeText(this, "image saved", Toast.LENGTH_SHORT).show();
-//            performCrop(Uri.fromFile(imageFile));
-        } else if (requestCode == Config.REQUEST_CHOP_PHOTO_CODE && resultCode == Activity.RESULT_OK
+        } else if (requestCode == Util.REQUEST_CHOP_PHOTO_CODE && resultCode == Activity.RESULT_OK
                 && data != null) {
             Toast.makeText(this, "image saved", Toast.LENGTH_SHORT).show();
             performInference(Uri.fromFile(imageFile));
@@ -209,7 +210,7 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(imageFile));
         intent.putExtra("outputFormat", Bitmap.CompressFormat.PNG.toString());
         // start activity
-        startActivityForResult(intent, Config.REQUEST_TAKE_PHOTO_CODE);
+        startActivityForResult(intent, Util.REQUEST_TAKE_PHOTO_CODE);
     }
 
     private void performCrop(Uri uri) {
@@ -226,7 +227,7 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
         intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
         intent.putExtra("outputFormat", Bitmap.CompressFormat.PNG.toString());
 
-        startActivityForResult(intent, Config.REQUEST_CHOP_PHOTO_CODE);
+        startActivityForResult(intent, Util.REQUEST_CHOP_PHOTO_CODE);
     }
 
     private boolean initFile() {
@@ -253,7 +254,8 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
             String[] perms = {
                     "android.permission.CAMERA",
                     "android.permission.WRITE_EXTERNAL_STORAGE",
-                    "android.permission.READ_EXTERNAL_STORAGE"
+                    "android.permission.READ_EXTERNAL_STORAGE",
+                    "android.permission.INTERNET"
             };
             int permsRequestCode = 200;
             requestPermissions(perms, permsRequestCode);

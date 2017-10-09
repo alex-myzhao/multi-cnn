@@ -5,15 +5,15 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="cn.alexchao.multicnn.MainActivity">
+    tools:context="cn.alexchao.multicnn.activities.MainActivity">
 
     <Button
         style="@android:style/TextAppearance.Material.Button"
-        android:id="@+id/to_mnist"
+        android:id="@+id/to_server"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="MNIST"
+        android:text="Server"
         android:layout_marginTop="20dp"
         android:layout_marginBottom="10dp" />
 
@@ -25,14 +25,5 @@
         android:layout_gravity="center"
         android:text="Cifar 10"
         android:layout_marginBottom="10dp" />
-
-    <!--<Button-->
-        <!--style="@android:style/TextAppearance.Material.Button"-->
-        <!--android:id="@+id/to_cifar"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_gravity="center"-->
-        <!--android:text="Cifar"-->
-        <!--android:layout_marginBottom="10dp" />-->
 
 </LinearLayout>

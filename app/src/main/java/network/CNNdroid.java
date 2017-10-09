@@ -292,8 +292,8 @@ public class CNNdroid {
 
         String type = "";
         String name = "";
-        List<String> args = new ArrayList<String>();
-        List<String> values= new ArrayList<String>();
+        List<String> args = new ArrayList<>();
+        List<String> values= new ArrayList<>();
 
         for (int i = 0; i < strArr.length - 1; ++i)
         {
