@@ -1,17 +1,11 @@
-package cn.alexchao.multicnn.threads;
+package cn.alexchao.multicnn.wifi;
 
-import android.app.Activity;
 import android.widget.Toast;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 
 import cn.alexchao.multicnn.StaticConfig;
 import cn.alexchao.multicnn.activities.ServerActivity;

@@ -1,42 +1,29 @@
-package cn.alexchao.multicnn.threads;
+package cn.alexchao.multicnn.wifi;
 
-import android.app.Activity;
-import android.util.Log;
 import android.widget.TextView;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PrintWriter;
 import java.net.Socket;
 
 import cn.alexchao.multicnn.R;
-import cn.alexchao.multicnn.StaticConfig;
+import cn.alexchao.multicnn.activities.ServerActivity;
 import cn.alexchao.multicnn.bean.TransModel;
 
-public class ClientThread extends Thread {
-    private Activity mActivity;
-    private Socket client;
+public class ServerListenerThread extends Thread {
     private ObjectInputStream is;
     private ObjectOutputStream os;
-    private String serverIP;
+    private Socket client;
+    private ServerActivity mActivity;
 
-    public ClientThread(Activity activity, String serverIP) {
-        this.mActivity = activity;
-        this.serverIP = serverIP;
+    public ServerListenerThread(Socket client, ServerActivity activity) {
+        this.client = client;
+        mActivity = activity;
         this.start();
     }
 
     public void run() {
-        try {
-            client = new Socket(serverIP, StaticConfig.serverPort);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         String msg;
         while (true) {
             try {
@@ -46,36 +33,42 @@ public class ClientThread extends Thread {
             } catch (IOException e) {
                 e.printStackTrace();
                 break;
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+            } catch (ClassNotFoundException e2) {
+                e2.printStackTrace();
                 break;
             }
         }
     }
 
-    public synchronized void sendMsg(String msg) {
+    // send message back to the client
+    private synchronized void replyMsg(String msg) {
         try {
-            TransModel tm = new TransModel();
-            tm.getMessages().add(msg);
-            getOs().writeObject(tm);
+            TransModel model = new TransModel();
+            model.getMessages().add(msg);
+            getOs().writeObject(model);
             getOs().flush();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void handleMsg(final String msg) {
+    private synchronized void handleMsg(final String msg) {
         mActivity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                TextView display = (TextView) mActivity.findViewById(R.id.client_display);
+                TextView display = (TextView) mActivity.findViewById(R.id.server_display);
                 String tmpMsg = display.getText().toString() + "\n" + msg;
                 display.setText(tmpMsg);
+                replyMsg("Server: Hi" + client.getInetAddress());
             }
         });
     }
 
-    public ObjectInputStream getIs() {
+    private synchronized void handleRequest(TransModel req) {
+
+    }
+
+    private ObjectInputStream getIs() {
         if (this.client == null) return null;
         if (this.is == null) {
             try {
@@ -87,7 +80,7 @@ public class ClientThread extends Thread {
         return this.is;
     }
 
-    public ObjectOutputStream getOs() {
+    private ObjectOutputStream getOs() {
         if (this.client == null) return null;
         if (this.os == null) {
             try {

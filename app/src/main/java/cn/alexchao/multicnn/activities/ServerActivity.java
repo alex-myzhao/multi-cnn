@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 import cn.alexchao.multicnn.R;
 import cn.alexchao.multicnn.Util;
-import cn.alexchao.multicnn.threads.ServerThread;
+import cn.alexchao.multicnn.wifi.ServerThread;
 
 public class ServerActivity extends AppCompatActivity implements View.OnClickListener {
     public ArrayList<Socket> clients;

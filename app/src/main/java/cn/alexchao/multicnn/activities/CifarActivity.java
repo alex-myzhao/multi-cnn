@@ -13,18 +13,15 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.renderscript.RenderScript;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Scanner;
@@ -32,7 +29,7 @@ import java.util.Scanner;
 import cn.alexchao.multicnn.StaticConfig;
 import cn.alexchao.multicnn.Util;
 import cn.alexchao.multicnn.R;
-import cn.alexchao.multicnn.threads.ClientThread;
+import cn.alexchao.multicnn.wifi.ClientThread;
 import messagepack.ParamUnpacker;
 import network.CNNdroid;
 
@@ -97,7 +94,7 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
                 Toast.makeText(this, "Initialization Failed", Toast.LENGTH_SHORT).show();
             }
         } else if (v.getId() == R.id.send_msg_btn) {
-            Toast.makeText(this, "Send Msg", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "SendLayer Msg", Toast.LENGTH_SHORT).show();
             if (mClient != null) {
                 mClient.sendMsg(Util.getLocalIp(this) + ": Hi, Server");
             }

@@ -63,9 +63,7 @@ public class CNNdroid {
             return null;
         }
 
-
         for (int i = 0 ; i < layers.size() ; i++) {
-            Object temp = output;
             output = layers.get(i).compute(output);
         }
 
