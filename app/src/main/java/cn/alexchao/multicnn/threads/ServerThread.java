@@ -3,8 +3,11 @@ package cn.alexchao.multicnn.threads;
 import android.app.Activity;
 import android.widget.Toast;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -12,11 +15,10 @@ import java.util.ArrayList;
 
 import cn.alexchao.multicnn.StaticConfig;
 import cn.alexchao.multicnn.activities.ServerActivity;
+import cn.alexchao.multicnn.bean.TransModel;
 
 public class ServerThread extends Thread {
     private ServerSocket ss;
-    private BufferedReader reader;
-    private PrintWriter writer;
     private ServerActivity mActivity;
 
     public ServerThread(ServerActivity activity) {
@@ -44,12 +46,16 @@ public class ServerThread extends Thread {
 
     }
 
-    public synchronized void sendMsg(String msg) {
+    public synchronized void broadcastMsg(String msg) {
         try {
             for (int i = 0; i < mActivity.clients.size(); i++) {
                 Socket client = mActivity.clients.get(i);
-                writer = new PrintWriter(client.getOutputStream(), true);
-                writer.println(msg);
+                ObjectOutputStream tmpOs = new ObjectOutputStream(client.getOutputStream());
+                TransModel model = new TransModel();
+                model.getMessages().add(msg);
+                tmpOs.writeObject(model);
+                tmpOs.flush();
+                tmpOs.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -60,10 +66,6 @@ public class ServerThread extends Thread {
         try {
             if (ss != null)
                 ss.close();
-            if (reader != null)
-                reader.close();
-            if (writer != null)
-                writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -99,7 +99,7 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
         } else if (v.getId() == R.id.send_msg_btn) {
             Toast.makeText(this, "Send Msg", Toast.LENGTH_SHORT).show();
             if (mClient != null) {
-                mClient.sendMsg("Client: Hi, Server");
+                mClient.sendMsg(Util.getLocalIp(this) + ": Hi, Server");
             }
         }
     }
@@ -138,13 +138,13 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
         }
 
         protected void onPostExecute(CNNdroid result) {
-            mText.setText("\n\n\n\nPress \"Run\" to\nStart the Benchmark...");
+            String tmp = "Press \"Run\" to Start the Benchmark...";
+            mText.setText(tmp);
             mText.setTextSize(mTextSize + 5);
             mText.setTextColor(Color.rgb(0, 0 ,0));
             mBtn.setText("Run");
             mBtn.setVisibility(View.VISIBLE);
             progDialog.dismiss();
-            //layout.setBackground(getResources().getDrawable(R.drawable.back));
             layout.setClickable(true);
             layout.setFocusable(true);
             layout.setFocusableInTouchMode(true);
@@ -155,6 +155,7 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
     private void initialize() {
         askForPermission();
 
+        ((TextView) findViewById(R.id.client_ip)).setText(Util.getLocalIp(this));
         this.mBtn = (Button) findViewById(R.id.run_btn);
         this.mText = (TextView) findViewById(R.id.textView);
         mBtn.setOnClickListener(this);
