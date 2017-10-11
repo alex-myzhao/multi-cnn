@@ -49,8 +49,8 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
 
     // global settings
     private final int mTextSize = 20;
-    private final String mModelPath = StaticConfig.modelPath;
-    private final String mBufferPath = StaticConfig.bufferPath;
+    private final String mModelPath = StaticConfig.MODEL_PATH;
+    private final String mBufferPath = StaticConfig.BUFFER_PATH;
 
     // socket connection
     private ClientThread mClient;
@@ -94,8 +94,8 @@ public class CifarActivity extends AppCompatActivity implements View.OnClickList
                 Toast.makeText(this, "Initialization Failed", Toast.LENGTH_SHORT).show();
             }
         } else if (v.getId() == R.id.send_msg_btn) {
-            Toast.makeText(this, "SendLayer Msg", Toast.LENGTH_SHORT).show();
             if (mClient != null) {
+                Toast.makeText(this, "Send Msg", Toast.LENGTH_SHORT).show();
                 mClient.sendMsg(Util.getLocalIp(this) + ": Hi, Server");
             }
         }

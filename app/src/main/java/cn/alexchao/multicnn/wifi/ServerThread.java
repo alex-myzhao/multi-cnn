@@ -3,13 +3,11 @@ package cn.alexchao.multicnn.wifi;
 import android.widget.Toast;
 
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 import cn.alexchao.multicnn.StaticConfig;
 import cn.alexchao.multicnn.activities.ServerActivity;
-import cn.alexchao.multicnn.bean.TransModel;
 
 public class ServerThread extends Thread {
     private ServerSocket ss;
@@ -28,9 +26,10 @@ public class ServerThread extends Thread {
             }
         });
         try {
-            ss = new ServerSocket(StaticConfig.serverPort);
+            ss = new ServerSocket(StaticConfig.SERVER_PORT);
             while (true) {
                 Socket client = ss.accept();
+                mActivity.clientsMap.put(client.getInetAddress() + "", mActivity.clients.size());
                 mActivity.clients.add(client);
                 new ServerListenerThread(client, mActivity);
             }
@@ -38,22 +37,6 @@ public class ServerThread extends Thread {
             e.printStackTrace();
         }
 
-    }
-
-    public synchronized void broadcastMsg(String msg) {
-        try {
-            for (int i = 0; i < mActivity.clients.size(); i++) {
-                Socket client = mActivity.clients.get(i);
-                ObjectOutputStream tmpOs = new ObjectOutputStream(client.getOutputStream());
-                TransModel model = new TransModel();
-                model.getMessages().add(msg);
-                tmpOs.writeObject(model);
-                tmpOs.flush();
-                tmpOs.close();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public void closeServer() {

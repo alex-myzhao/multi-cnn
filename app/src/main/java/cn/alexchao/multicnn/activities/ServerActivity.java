@@ -7,6 +7,7 @@ import android.widget.TextView;
 
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import cn.alexchao.multicnn.R;
 import cn.alexchao.multicnn.Util;
@@ -14,6 +15,7 @@ import cn.alexchao.multicnn.wifi.ServerThread;
 
 public class ServerActivity extends AppCompatActivity implements View.OnClickListener {
     public ArrayList<Socket> clients;
+    public HashMap<String, Integer> clientsMap;  // start from 0
     private ServerThread server;
 
     @Override
@@ -22,6 +24,7 @@ public class ServerActivity extends AppCompatActivity implements View.OnClickLis
         setContentView(R.layout.activity_server);
 
         clients = new ArrayList<>();
+        clientsMap = new HashMap<>();
         ((TextView) findViewById(R.id.server_ip)).setText(Util.getLocalIp(this));
         findViewById(R.id.start_server_btn).setOnClickListener(this);
     }

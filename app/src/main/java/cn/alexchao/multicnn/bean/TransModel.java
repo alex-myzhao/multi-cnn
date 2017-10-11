@@ -3,10 +3,16 @@ package cn.alexchao.multicnn.bean;
 import java.util.ArrayList;
 
 public class TransModel implements java.io.Serializable {
+    // debug only
     private ArrayList<String> messages;
+
+    // mark
     private String mOperation;  // "init" or "pull" or "push"
-    private int mRange;
-    private float[][][][] mPayload;
+    private boolean mIsReq;
+
+    // data
+    private int[] mRange;  // row index, [mRange[0], mRange[1])
+    private float[][][][] mPayload;  // number, channel, height, width
 
     public TransModel() {
         this.messages = new ArrayList<>();
@@ -28,11 +34,19 @@ public class TransModel implements java.io.Serializable {
         this.mOperation = operation;
     }
 
-    public int getmRange() {
+    public boolean getisReq() {
+        return this.mIsReq;
+    }
+
+    public void setisReq(boolean isReq) {
+        this.mIsReq = isReq;
+    }
+
+    public int[] getmRange() {
         return mRange;
     }
 
-    public void setmRange(int range) {
+    public void setmRange(int[] range) {
         this.mRange = range;
     }
 

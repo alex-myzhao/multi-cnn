@@ -52,6 +52,22 @@ public class ServerListenerThread extends Thread {
         }
     }
 
+    public synchronized void broadcastMsg(String msg) {
+        try {
+            for (int i = 0; i < mActivity.clients.size(); i++) {
+                Socket client = mActivity.clients.get(i);
+                ObjectOutputStream tmpOs = new ObjectOutputStream(client.getOutputStream());
+                TransModel model = new TransModel();
+                model.getMessages().add(msg);
+                tmpOs.writeObject(model);
+                tmpOs.flush();
+                tmpOs.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private synchronized void handleMsg(final String msg) {
         mActivity.runOnUiThread(new Runnable() {
             @Override

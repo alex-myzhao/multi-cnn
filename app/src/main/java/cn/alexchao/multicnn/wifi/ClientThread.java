@@ -27,7 +27,7 @@ public class ClientThread extends Thread {
 
     public void run() {
         try {
-            client = new Socket(serverIP, StaticConfig.serverPort);
+            client = new Socket(serverIP, StaticConfig.SERVER_PORT);
         } catch (IOException e) {
             e.printStackTrace();
         }
